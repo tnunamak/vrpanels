@@ -1,44 +1,123 @@
-(function() {
+var glScene, cssScene, controls, camera, glRenderer, cssRenderer,
+    geometry, material, sphere;
 
-var camera, scene, renderer;
-var geometry, material, mesh;
-
-init();
-animate();
+$(function () {
+    init();
+    animate();
+});
 
 function init() {
+    glRenderer = makeWebGlRenderer();
+    cssRenderer = makeCssRenderer();
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
-    camera.position.z = 1000;
+    document.body.appendChild(glRenderer.domElement);
+    document.body.appendChild(cssRenderer.domElement);
 
-    scene = new THREE.Scene();
+    glScene = new THREE.Scene();
+    cssScene = new THREE.Scene();
 
-    geometry = new THREE.CubeGeometry(200, 200, 200);
-    material = new THREE.MeshBasicMaterial({
-        color: 0xff0000,
-        wireframe: true
-    });
+    glScene.add(makeFloor());
 
-    mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight);
 
-    renderer = new THREE.CanvasRenderer();
+    camera.position.y = window.innerHeight / 2;
+    camera.position.z = 1500;
+
+
+    controls = new THREE.OrbitControls(camera);
+
+    // create the plane mesh
+    var material = new THREE.MeshBasicMaterial({ wireframe: true, color: 'blue' });
+    material.color.set('black');
+    material.opacity = 0;
+    material.blending = THREE.NoBlending;
+
+    // TODO these dimensions might not be right
+    var geometry = new THREE.PlaneGeometry(window.innerWidth, window.innerHeight, 10, 10);
+
+    var numFebs = 5;
+    var radius = 1500;
+
+    for (var i = 0; i < numFebs; i++) {
+        var planeMesh = new THREE.Mesh(geometry, material);
+        glScene.add(planeMesh);
+
+        /*if(i===0){
+            camera.lookAt(planeMesh.position);
+        }*/
+
+        var angle = i / numFebs * Math.PI * 2;
+        planeMesh.position.x = radius * Math.cos(angle);
+        planeMesh.position.z = radius * Math.sin(angle);
+        planeMesh.position.y = window.innerHeight / 2;
+
+        planeMesh.rotation.y = 3 * Math.PI / 2 - angle;
+
+        var url = 'http://en.wikipedia.org/wiki/Portal:Current_events/' + (2014 - i) + '_February_12';
+
+        var iframe = $('<iframe src="' + url + '" />').css({width: window.innerWidth, height: window.innerHeight});
+
+        // create the object3d for this element
+        var cssObject = new THREE.CSS3DObject(iframe[0]);
+
+        cssObject.position.x = planeMesh.position.x;
+        cssObject.position.y = planeMesh.position.y;
+        cssObject.position.z = planeMesh.position.z;
+
+        cssObject.rotation.x = planeMesh.rotation.x;
+        cssObject.rotation.y = planeMesh.rotation.y;
+        cssObject.rotation.z = planeMesh.rotation.z;
+
+        // add it to the css scene
+        cssScene.add(cssObject);
+    }
+}
+
+function makeCssRenderer() {
+    var cssRenderer = new THREE.CSS3DRenderer();
+    cssRenderer.setSize(window.innerWidth, window.innerHeight);
+    cssRenderer.domElement.style.position = 'absolute';
+    cssRenderer.domElement.style.top = 0;
+    return cssRenderer;
+}
+
+function makeWebGlRenderer() {
+    var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    return renderer;
+}
 
-    document.body.appendChild(renderer.domElement);
+function makeFloor() {
 
+    var size = 5000;
+    var edgeWidth = 100;
+
+    var geometry = new THREE.Geometry();
+    var material = new THREE.LineBasicMaterial({ color: 'lightgrey' });
+
+    for (var x = -size; x <= size; x += edgeWidth) {
+        geometry.vertices.push(new THREE.Vector3(-size, -0.04, x));
+        geometry.vertices.push(new THREE.Vector3(size, -0.04, x));
+        geometry.vertices.push(new THREE.Vector3(x, -0.04, -size));
+        geometry.vertices.push(new THREE.Vector3(x, -0.04, size));
+    }
+
+    return new THREE.Line(geometry, material, THREE.LinePieces);
 }
 
 function animate() {
 
-    // note: three.js includes requestAnimationFrame shim
     requestAnimationFrame(animate);
 
-    mesh.rotation.x += 0.01;
-    mesh.rotation.y += 0.02;
+    //planeMesh.rotation.x += 0.01;
+    //cssObject.rotation.x += 0.01;
 
-    renderer.render(scene, camera);
+    if (Math.random() > 0.99) {
+        //console.log(camera);
+    }
 
+    glRenderer.render(glScene, camera);
+    cssRenderer.render(cssScene, camera);
+
+    controls.update();
 }
-
-})();
