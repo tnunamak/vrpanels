@@ -7,6 +7,10 @@ $(function () {
 });
 
 function init() {
+
+    Mousetrap.bind('shift', function() { $('body').css('pointer-events', 'none'); controls.enabled = true; }, 'keydown');
+    Mousetrap.bind('shift', function() { $('body').css('pointer-events', 'inherit'); controls.enabled = false; }, 'keyup');
+
     glRenderer = makeWebGlRenderer();
     cssRenderer = makeCssRenderer();
 
@@ -18,13 +22,14 @@ function init() {
 
     glScene.add(makeFloor());
 
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight);
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 100000);
 
     camera.position.y = window.innerHeight / 2;
     camera.position.z = 1500;
 
 
     controls = new THREE.OrbitControls(camera);
+    controls.enabled = false;
 
     // create the plane mesh
     var material = new THREE.MeshBasicMaterial({ wireframe: true, color: 'blue' });
