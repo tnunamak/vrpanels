@@ -5,6 +5,7 @@
             "clean": true
         },
         "files": {
+            "underscore": "underscore/underscore-min.js",
             "jquery": "jquery/dist/jquery.min.js",
             "mousetrap": "mousetrap/mousetrap.min.js",
             "threejs/three.min.js": "threejs/build/three.min.js",

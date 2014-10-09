@@ -19,12 +19,18 @@
         <![endif]-->
 
         <!-- TODO awaiting answer on http://stackoverflow.com/questions/26262540/how-can-i-install-files-the-maintainer-has-configured-bower-to-ignore -->
+        <script src="js/vendor/underscore/underscore-min.js"></script>
         <script src="js/vendor/jquery/jquery.min.js"></script>
-        <script src="js/vendor/mousetrap/mousetrap.min.js"></script>
+        <!--<script src="js/vendor/mousetrap/mousetrap.min.js"></script>-->
         <script src="js/vendor/threejs/three.min.js"></script>
-        <script src="js/vendor/threejs/TrackballControls.js"></script>
-        <script src="js/vendor/threejs/OrbitControls.js"></script>
+        <script src="js/vendor/threejs/THREEx.FullScreen.js"></script>
+        <script src="js/vendor/threejs/VRRenderer.js"></script>
+        <script src="js/vendor/threejs/OculusNativeControls.js"></script>
+        <script src="js/vendor/threejs/OculusRiftEffect.js"></script>
+        <script src="js/vendor/threejs/PointerLockControls.js"></script>
+        <script src="js/vendor/threejs/FirstPersonControls.js"></script>
         <script src="js/vendor/threejs/CSS3DRenderer.js"></script>
+        <script src="js/hmd.js"></script>
         <script src="js/main.js"></script>
 
         <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
@@ -36,5 +42,16 @@
             r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));
             ga('create','UA-XXXXX-X');ga('send','pageview');
         </script>
+
+
+        <div id="blocker">
+
+            <div id="instructions">
+                <span style="font-size:40px">Press Enter to start</span>
+                <br />
+                (W, A, S, D: Move, Mouse: Look around)
+            </div>
+
+        </div>
     </body>
 </html>

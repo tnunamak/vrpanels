@@ -1,89 +1,95 @@
-var glScene, cssScene, controls, camera, glRenderer, cssRenderer,
-    geometry, material, sphere;
+/* UNITS ARE METERS!! */
+
+var scene, controls, tracking, camera,
+    glRenderer, clock,
+    geometry, material, glBarrelDistortion;
+
+var vr;
+
+var distortionOptions = {
+    HMD: {
+        hResolution: 1920,
+        vResolution: 1080,
+        hScreenSize: 0.1262,
+        vScreenSize: 0.071,
+        interpupillaryDistance: 0.064,
+        lensSeparationDistance: 0.064,
+        eyeToScreenDistance: 0.041,
+        distortionK : [1.0, 0.22, 0, 0.0],
+        chromaAbParameter: [ 0.996, -0.004, 1.014, 0.0],
+        worldFactor: 1
+    }
+};
+var ready = $.Deferred();
 
 $(function () {
-    init();
-    animate();
+    try {
+        $.when(hmd.get()).then(function(hmd) {
+            vr = hmd.hardwareUnitId != "debug-0";
+            go();
+        }).fail(function() {
+            vr = false;
+            go();
+        });
+    } catch(e) {
+        vr = false;
+        go();
+    }
+
+    function go() {
+        pointerLock();
+        init();
+        animate();
+    }
 });
 
 function init() {
-
-    Mousetrap.bind('shift', function() { $('body').css('pointer-events', 'none'); controls.enabled = true; }, 'keydown');
-    Mousetrap.bind('shift', function() { $('body').css('pointer-events', 'inherit'); controls.enabled = false; }, 'keyup');
+    clock = new THREE.Clock();
 
     glRenderer = makeWebGlRenderer();
-    cssRenderer = makeCssRenderer();
+    glRenderer.setClearColor(0xffffff, 1);
 
     document.body.appendChild(glRenderer.domElement);
-    document.body.appendChild(cssRenderer.domElement);
 
-    glScene = new THREE.Scene();
-    cssScene = new THREE.Scene();
+    scene = new THREE.Scene();
 
-    glScene.add(makeFloor());
+    //scene.add(makeFloor());
 
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 100000);
+    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1 / 100, 10000 );
+    camera.position.y = 0;
 
-    camera.position.y = window.innerHeight / 2;
-    camera.position.z = 1500;
+    tracking = new THREE.OculusNativeControls( camera );
+    controls = new THREE.PointerLockControls( camera );
+    scene.add( controls.getObject() );
 
+    glBarrelDistortion = new THREE.OculusRiftEffect( glRenderer, distortionOptions );
+    glBarrelDistortion.setSize( window.innerWidth, window.innerHeight );
 
-    controls = new THREE.OrbitControls(camera);
-    controls.enabled = false;
+    var aspectRatio = 4 / 3;
+    var panelWidth = 4;
+    var panelHeight = panelWidth / aspectRatio;
 
-    // create the plane mesh
-    var material = new THREE.MeshBasicMaterial({ wireframe: true, color: 'blue' });
-    material.color.set('black');
-    material.opacity = 0;
-    material.blending = THREE.NoBlending;
+    var urls = ['http://i.imgur.com/8FMgdWQ.jpg', 'http://i.imgur.com/img0gF3.jpg', 'http://i.imgur.com/t7wX6Cx.jpg'];
 
-    // TODO these dimensions might not be right
-    var geometry = new THREE.PlaneGeometry(window.innerWidth, window.innerHeight, 10, 10);
+    var numPanels = 8;
+    var radius = 5;
+    THREE.ImageUtils.crossOrigin = '';
 
-    var numFebs = 5;
-    var radius = 1500;
+    for (var i = 0; i < numPanels; i++) {
+        var img = new THREE.MeshBasicMaterial({
+            map: THREE.ImageUtils.loadTexture(urls[i % urls.length])
+        });
 
-    for (var i = 0; i < numFebs; i++) {
-        var planeMesh = new THREE.Mesh(geometry, material);
-        glScene.add(planeMesh);
+        var panel = new THREE.Mesh(new THREE.PlaneGeometry(panelWidth, panelHeight), img);
+        scene.add(panel);
 
-        /*if(i===0){
-            camera.lookAt(planeMesh.position);
-        }*/
+        var angle = i / numPanels * Math.PI * 2;
+        panel.position.x = radius * Math.cos(angle);
+        panel.position.z = radius * Math.sin(angle);
+        panel.position.y = 2;
 
-        var angle = i / numFebs * Math.PI * 2;
-        planeMesh.position.x = radius * Math.cos(angle);
-        planeMesh.position.z = radius * Math.sin(angle);
-        planeMesh.position.y = window.innerHeight / 2;
-
-        planeMesh.rotation.y = 3 * Math.PI / 2 - angle;
-
-        var url = 'http://en.wikipedia.org/wiki/Portal:Current_events/' + (2014 - i) + '_February_12';
-
-        var iframe = $('<iframe src="' + url + '" />').css({width: window.innerWidth, height: window.innerHeight});
-
-        // create the object3d for this element
-        var cssObject = new THREE.CSS3DObject(iframe[0]);
-
-        cssObject.position.x = planeMesh.position.x;
-        cssObject.position.y = planeMesh.position.y;
-        cssObject.position.z = planeMesh.position.z;
-
-        cssObject.rotation.x = planeMesh.rotation.x;
-        cssObject.rotation.y = planeMesh.rotation.y;
-        cssObject.rotation.z = planeMesh.rotation.z;
-
-        // add it to the css scene
-        cssScene.add(cssObject);
+        panel.rotation.y = 3 * Math.PI / 2 - angle;
     }
-}
-
-function makeCssRenderer() {
-    var cssRenderer = new THREE.CSS3DRenderer();
-    cssRenderer.setSize(window.innerWidth, window.innerHeight);
-    cssRenderer.domElement.style.position = 'absolute';
-    cssRenderer.domElement.style.top = 0;
-    return cssRenderer;
 }
 
 function makeWebGlRenderer() {
@@ -94,8 +100,8 @@ function makeWebGlRenderer() {
 
 function makeFloor() {
 
-    var size = 5000;
-    var edgeWidth = 100;
+    var size = 500;
+    var edgeWidth = 1 / 10;
 
     var geometry = new THREE.Geometry();
     var material = new THREE.LineBasicMaterial({ color: 'lightgrey' });
@@ -114,15 +120,108 @@ function animate() {
 
     requestAnimationFrame(animate);
 
-    //planeMesh.rotation.x += 0.01;
-    //cssObject.rotation.x += 0.01;
+    tracking.update( clock.getDelta() );
+    controls.update( clock.getDelta() );
 
-    if (Math.random() > 0.99) {
-        //console.log(camera);
+    if(vr) {
+        glBarrelDistortion.render(scene, camera);
+    } else {
+        glRenderer.render(scene, camera);
     }
+}
 
-    glRenderer.render(glScene, camera);
-    cssRenderer.render(cssScene, camera);
 
-    controls.update();
+function pointerLock() {
+    var blocker = document.getElementById( 'blocker' );
+    var instructions = document.getElementById( 'instructions' );
+
+    // http://www.html5rocks.com/en/tutorials/pointerlock/intro/
+
+    var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
+
+    if ( havePointerLock ) {
+
+        var element = document.body;
+
+        var pointerlockchange = function ( event ) {
+
+            if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
+
+                controls.enabled = true;
+
+                blocker.style.display = 'none';
+
+            } else {
+
+                controls.enabled = false;
+
+                blocker.style.display = '-webkit-box';
+                blocker.style.display = '-moz-box';
+                blocker.style.display = 'box';
+
+                instructions.style.display = '';
+
+            }
+
+        }
+
+        var pointerlockerror = function ( event ) {
+
+            instructions.style.display = '';
+
+        }
+
+        // Hook pointer lock state change events
+        document.addEventListener( 'pointerlockchange', pointerlockchange, false );
+        document.addEventListener( 'mozpointerlockchange', pointerlockchange, false );
+        document.addEventListener( 'webkitpointerlockchange', pointerlockchange, false );
+
+        document.addEventListener( 'pointerlockerror', pointerlockerror, false );
+        document.addEventListener( 'mozpointerlockerror', pointerlockerror, false );
+        document.addEventListener( 'webkitpointerlockerror', pointerlockerror, false );
+
+        document.addEventListener( 'keydown', function ( event ) {
+            if(!event.keyCode === 13/*Enter*/) {
+                return;
+            }
+
+            instructions.style.display = 'none';
+
+            // Ask the browser to lock the pointer
+            element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
+
+            if ( /Firefox/i.test( navigator.userAgent ) ) {
+
+                var fullscreenchange = function ( event ) {
+
+                    if ( document.fullscreenElement === element || document.mozFullscreenElement === element || document.mozFullScreenElement === element ) {
+
+                        document.removeEventListener( 'fullscreenchange', fullscreenchange );
+                        document.removeEventListener( 'mozfullscreenchange', fullscreenchange );
+
+                        element.requestPointerLock();
+                    }
+
+                }
+
+                document.addEventListener( 'fullscreenchange', fullscreenchange, false );
+                document.addEventListener( 'mozfullscreenchange', fullscreenchange, false );
+
+                element.requestFullscreen = element.requestFullscreen || element.mozRequestFullscreen || element.mozRequestFullScreen || element.webkitRequestFullscreen;
+
+                element.requestFullscreen();
+
+            } else {
+
+                element.requestPointerLock();
+
+            }
+
+        }, false );
+
+    } else {
+
+        instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
+
+    }
 }
