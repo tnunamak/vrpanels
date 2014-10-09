@@ -56,9 +56,13 @@ function init() {
     //scene.add(makeFloor());
 
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1 / 100, 10000 );
-    camera.position.y = 0;
 
-    tracking = new THREE.OculusNativeControls( camera );
+    try {
+        tracking = new THREE.OculusNativeControls( camera );
+        camera.position.y = 0;
+    } catch(e) {
+        camera.position.y = 2;
+    }
     controls = new THREE.PointerLockControls( camera );
     scene.add( controls.getObject() );
 
@@ -120,7 +124,9 @@ function animate() {
 
     requestAnimationFrame(animate);
 
-    tracking.update( clock.getDelta() );
+    if(tracking) {
+        tracking.update( clock.getDelta() );
+    }
     controls.update( clock.getDelta() );
 
     if(vr) {
